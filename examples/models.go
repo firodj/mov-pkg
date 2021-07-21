@@ -1,9 +1,15 @@
 package examples
 
+// DServiceBase ...
+type DServiceBase struct {
+	Phonenumber string `json:"phonenumber"`
+}
+
 // DServiceType ...
 type DServiceType struct {
 	ID       int `json:"-" faker:"-"`
 	Username string `json:"username"`
+	*DServiceBase
 }
 
 // DServiceCategory...
