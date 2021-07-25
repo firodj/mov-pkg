@@ -34,10 +34,14 @@ fmtcheck:
 vet:
 	@go vet ./...
 
+fixfmt:
+	@gofmt -w .
+	@goimports -w .
+
 try:
-	go run mov-pkg.go -f github.com/firodj/mov-pkg/examples -t github.com/firodj/mov-pkg/examples/models github.com/firodj/mov-pkg/examples
+	go run mov-pkg.go -f github.com/firodj/mov-pkg/examples -t github.com/firodj/mov-pkg/examples/models -s Temp github.com/firodj/mov-pkg/examples
 
 drytry:
-	go run mov-pkg.go -d -f github.com/firodj/mov-pkg/examples -t github.com/firodj/mov-pkg/examples/models github.com/firodj/mov-pkg/examples
+	go run mov-pkg.go -d -f github.com/firodj/mov-pkg/examples -t github.com/firodj/mov-pkg/examples/models -s Temp github.com/firodj/mov-pkg/examples
 
 .PHONY:	all

@@ -9,6 +9,7 @@ import (
 	"go/token"
 	"go/types"
 	"os"
+	"regexp"
 	"strings"
 
 	"golang.org/x/tools/go/ast/astutil"
@@ -28,10 +29,27 @@ func (i *arrayFlags) Set(value string) error {
 	return nil
 }
 
+// wildCardToRegexp converts a wildcard pattern to a regular expression pattern.
+func wildCardToRegexp(pattern string) string {
+	var result strings.Builder
+	for i, literal := range strings.Split(pattern, "*") {
+
+			// Replace * with .*
+			if i > 0 {
+					result.WriteString(".*")
+			}
+
+			// Quote any regular expression meta characters in the
+			// literal text.
+			result.WriteString(regexp.QuoteMeta(literal))
+	}
+	return result.String()
+}
+
 type App struct {
 	Fset         *token.FileSet
 	PkgFrom      string
-	NamesLocated string
+	NamesLocated arrayFlags
 	NamesFlags   arrayFlags
 	NamesFrom    map[string]string
 	PkgTo        string
@@ -56,11 +74,12 @@ func NewApp() *App {
 		NamesFrom: make(map[string]string),
 	}
 
+	app.NamesLocated.Set("/models.go,/mock_*.go")
 	flag.StringVar(&app.PkgFrom, "f", "", "Package from, eg. 'github.com/firodj/mov-pkg/examples'")
 	flag.StringVar(&app.PkgTo, "t", "", "Package to, eg. 'github.com/firodj/mov-pkg/examples/models'")
-	flag.StringVar(&app.NamesLocated, "l", "/models.go", "What File the Type is defined")
+	flag.Var(&app.NamesLocated, "l", "What File the Type is defined")
 	flag.StringVar(&app.PkgToName, "a", "", "Package alias name, left it blank to use default")
-	flag.Var(&app.NamesFlags, "n", "The Type name to be rename/move, left it blank to use all. This will combined with where the Type defined")
+	flag.Var(&app.NamesFlags, "n", "The Type name to be rename/move, left it blank to use all. This rule will combined with where the -l flags")
 	flag.StringVar(&app.SuffixTo, "s", "", "Target suffix for Type name")
 	flag.BoolVar(&app.IsDryRun, "d", false, "Dry run")
 	flag.Parse()
@@ -73,6 +92,12 @@ func NewApp() *App {
 		return nil
 	} else {
 		fmt.Printf("Pkg From: %s\n", app.PkgFrom)
+	}
+	if app.SuffixTo != "" {
+		fmt.Printf("Suffix To: %s\n", app.SuffixTo)
+	}
+	if len(app.NamesLocated) > 0 {
+		fmt.Printf("Names Located: %v\n", app.NamesLocated)
 	}
 	if app.PkgTo == "" {
 		fmt.Println("Missing -t params")
@@ -240,6 +265,16 @@ func (app *App) LoadPackages() {
 }
 
 func (app *App) ListDefines() {
+	isContains := func (value string, pattern string) bool {
+		patternHasWildcard := strings.Contains(pattern, "*")
+		if patternHasWildcard {
+			result, _ := regexp.MatchString(wildCardToRegexp(pattern), value)
+    return result
+		} else {
+			return strings.Contains(value, pattern)
+		}
+	}
+
 	for _, pkg := range PkgPackages {
 
 		pkgSubIDs := strings.Split(pkg.ID, " ")
@@ -286,11 +321,17 @@ func (app *App) ListDefines() {
 				pkgPath := typeName.Pkg().Path()
 				if pkgPath == app.PkgFrom {
 					whereDefined := app.Fset.Position(typeName.Pos())
-					if strings.Contains(whereDefined.Filename, app.NamesLocated) {
-						app.NamesFrom[typeName.Name()] = whereDefined.Filename
-						fmt.Printf("Add Name %s %s\n", typeName.Name(), whereDefined.Filename)
-					} else {
-						fmt.Printf("Skip Name %s %s\n", typeName.Name(), whereDefined.Filename)
+					added := false
+					for _, located := range app.NamesLocated {
+						if isContains(whereDefined.Filename, located) {
+							app.NamesFrom[typeName.Name()] = whereDefined.Filename
+							fmt.Printf("Add Name %s in %s\n", typeName.Name(), whereDefined.Filename)
+							added = true
+							break
+						}
+					}
+					if !added {
+						fmt.Printf("Skip Name %s in %s\n", typeName.Name(), whereDefined.Filename)
 					}
 				}
 			}

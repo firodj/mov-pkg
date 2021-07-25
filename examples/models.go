@@ -12,6 +12,11 @@ type DServiceType struct {
 	*DServiceBase
 }
 
+// DRepositoryItf ...
+type DRepositoryItf interface {
+	Close()
+}
+
 // DServiceCategory...
 type DServiceCategory struct {
 	ID            int           `json:"-"`
