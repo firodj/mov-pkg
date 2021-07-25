@@ -7,7 +7,7 @@ type DServiceBase struct {
 
 // DServiceType ...
 type DServiceType struct {
-	ID       int `json:"-" faker:"-"`
+	ID       int    `json:"-" faker:"-"`
 	Username string `json:"username"`
 	*DServiceBase
 }

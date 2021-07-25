@@ -11,7 +11,7 @@ func (st *DServiceType) DReturnCategory() *DServiceCategory {
 		ID: 2021,
 		DServiceType: &DServiceType{
 			Username: "Udin",
-			DServiceBase: &DServiceBase {
+			DServiceBase: &DServiceBase{
 				Phonenumber: "6522221111",
 			},
 		},
